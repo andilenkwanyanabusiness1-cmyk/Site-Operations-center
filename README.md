@@ -48,6 +48,7 @@ SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_DB_URL=postgres://... (from Supabase Database settings)
 JWT_SECRET=change-me
+SUPABASE_JWT_SECRET=your-supabase-jwt-secret
 PORT=4000
 AUTO_INIT_DB=false
 ```
@@ -60,8 +61,45 @@ In Supabase SQL editor, run:
 
 1. `backend/sql/001_schema.sql`
 2. `backend/sql/002_seed.sql`
+3. `backend/sql/003_auth_rls.sql`
 
 This creates all required tables and default users.
+
+### 2.1) Supabase Auth + Role Setup
+
+1. In Supabase Dashboard → Authentication → Providers, enable Email provider.
+2. Create users (Admin/Supervisor/Guard) in Authentication → Users.
+3. For each user, set role in **App Metadata** (not user metadata), e.g.:
+
+```json
+{ "role": "admin" }
+```
+
+Allowed roles:
+
+- `admin`
+- `supervisor`
+- `guard`
+
+`003_auth_rls.sql` adds:
+
+- `user_profiles` linked to `auth.users`
+- automatic profile creation trigger
+- role helper functions (`current_app_role`, `is_admin`, etc.)
+- table-level RLS policies enforcing Admin/Supervisor/Guard permissions
+
+### 2.2) Generate Supabase JWT secret for backend verification
+
+In Supabase Dashboard → Project Settings → API, copy JWT secret and set:
+
+```
+SUPABASE_JWT_SECRET=...
+```
+
+Backend `requireAuth` accepts role from either:
+
+- `role` claim
+- `app_metadata.role` claim
 
 ### 3) Backend
 
@@ -103,3 +141,4 @@ Frontend expects backend at `http://localhost:4000`.
 - Backend is now configured to use `SUPABASE_DB_URL` preferentially.
 - SSL is enabled automatically for Supabase DB connections.
 - SQL migration files are in `backend/sql/`.
+- RLS is enabled in `003_auth_rls.sql`; direct DB access by authenticated clients is role-restricted.
