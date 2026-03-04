@@ -431,7 +431,13 @@ app.get("/audit-logs", requireAuth, requireRole("admin", "supervisor"), async (_
 });
 
 async function start() {
-    await initDb();
+    const autoInit = String(process.env.AUTO_INIT_DB || "false").toLowerCase() === "true";
+    if (autoInit) {
+        await initDb();
+        console.log("AUTO_INIT_DB enabled: schema initialization executed.");
+    } else {
+        console.log("AUTO_INIT_DB disabled: expecting Supabase schema to be applied via SQL migrations.");
+    }
     const port = Number(process.env.PORT || 4000);
     app.listen(port, () => {
         console.log(`Site Ops backend running on http://localhost:${port}`);

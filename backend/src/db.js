@@ -7,15 +7,16 @@ dotenv.config();
 const { Pool } = pg;
 
 export const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.SUPABASE_DB_URL || process.env.DATABASE_URL,
+  ssl: process.env.SUPABASE_DB_URL ? { rejectUnauthorized: false } : undefined,
 });
 
 export async function query(text, params = []) {
-    return pool.query(text, params);
+  return pool.query(text, params);
 }
 
 export async function initDb() {
-    await query(`
+  await query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -133,33 +134,33 @@ export async function initDb() {
     );
   `);
 
-    const count = await query("SELECT COUNT(*)::int AS c FROM users");
-    if (count.rows[0].c === 0) {
-        const adminHash = await bcrypt.hash("Admin@123", 10);
-        const supervisorHash = await bcrypt.hash("Supervisor@123", 10);
-        const guardHash = await bcrypt.hash("Guard@123", 10);
+  const count = await query("SELECT COUNT(*)::int AS c FROM users");
+  if (count.rows[0].c === 0) {
+    const adminHash = await bcrypt.hash("Admin@123", 10);
+    const supervisorHash = await bcrypt.hash("Supervisor@123", 10);
+    const guardHash = await bcrypt.hash("Guard@123", 10);
 
-        await query(
-            `INSERT INTO users (name, email, password_hash, role) VALUES
+    await query(
+      `INSERT INTO users (name, email, password_hash, role) VALUES
        ('System Admin', 'admin@siteops.local', $1, 'admin'),
        ('Site Supervisor', 'supervisor@siteops.local', $2, 'supervisor'),
        ('Primary Guard', 'guard@siteops.local', $3, 'guard')`,
-            [adminHash, supervisorHash, guardHash],
-        );
-    }
+      [adminHash, supervisorHash, guardHash],
+    );
+  }
 }
 
 export async function logAudit(actorUserId, action, entityType, entityId, details = {}) {
-    await query(
-        `INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, details)
+  await query(
+    `INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, details)
      VALUES ($1, $2, $3, $4, $5)`,
-        [actorUserId ?? null, action, entityType, entityId ? String(entityId) : null, JSON.stringify(details)],
-    );
+    [actorUserId ?? null, action, entityType, entityId ? String(entityId) : null, JSON.stringify(details)],
+  );
 }
 
 export async function enqueueEvent(eventType, payload) {
-    await query(`INSERT INTO outbox_events (event_type, payload) VALUES ($1, $2)`, [
-        eventType,
-        JSON.stringify(payload),
-    ]);
+  await query(`INSERT INTO outbox_events (event_type, payload) VALUES ($1, $2)`, [
+    eventType,
+    JSON.stringify(payload),
+  ]);
 }

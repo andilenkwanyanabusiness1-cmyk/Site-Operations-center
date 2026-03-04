@@ -6,7 +6,7 @@ Security-first visitor and guard operations system with strict rule enforcement.
 
 - Frontend: React (Vite)
 - Backend: Node.js + Express
-- Database: PostgreSQL
+- Database: Supabase PostgreSQL
 
 ## Features Implemented
 
@@ -34,19 +34,36 @@ frontend/
 
 ## Setup
 
-### 1) PostgreSQL
+### 1) Supabase Project Setup
 
-Create a DB and set connection string in backend `.env`.
+Create a Supabase project, then set backend env vars in `backend/.env`.
 
-Example:
+Use `backend/.env.example` as template.
+
+Required values:
 
 ```
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/site_ops
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_DB_URL=postgres://... (from Supabase Database settings)
 JWT_SECRET=change-me
 PORT=4000
+AUTO_INIT_DB=false
 ```
 
-### 2) Backend
+> `SUPABASE_DB_URL` is used by the backend API via `pg` driver.
+
+### 2) Apply SQL schema + seed in Supabase
+
+In Supabase SQL editor, run:
+
+1. `backend/sql/001_schema.sql`
+2. `backend/sql/002_seed.sql`
+
+This creates all required tables and default users.
+
+### 3) Backend
 
 ```bash
 cd backend
@@ -54,9 +71,11 @@ npm install
 npm run dev
 ```
 
-Backend auto-creates schema on startup and seeds default users.
+If `AUTO_INIT_DB=true`, backend auto-creates schema and seeds users.
 
-### 3) Frontend
+For Supabase production, keep `AUTO_INIT_DB=false` and rely on SQL migration files.
+
+### 4) Frontend
 
 ```bash
 cd frontend
@@ -78,3 +97,9 @@ Frontend expects backend at `http://localhost:4000`.
 - Visitor code is one-time and marked `used` on successful check-in.
 - Reports are final after submission.
 - Every sensitive operation is audit-logged.
+
+## Supabase Notes
+
+- Backend is now configured to use `SUPABASE_DB_URL` preferentially.
+- SSL is enabled automatically for Supabase DB connections.
+- SQL migration files are in `backend/sql/`.
